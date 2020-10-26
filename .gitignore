@@ -1,1 +1,6 @@
 target
+
+# Eclipse files that I don't need (created by eclipse.jdt.ls)
+.classpath
+.project
+.settings
