@@ -11,9 +11,12 @@ namespace chipedda::emulator
         std::vector<uint8_t> memory;
         Display display;
         Registers registers;
-        std::stack<uint8_t> stack;
+        std::stack<uint8_t> call_stack;
         // Keyboard keyboard;
         Timer soundTimer;
         Timer delayTimer;
+        void nextInstruction();
+    public:
+        Emulator(std::vector<uint8_t> program);
     };
 }
