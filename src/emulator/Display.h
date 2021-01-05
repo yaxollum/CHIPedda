@@ -7,7 +7,7 @@ namespace chipedda::emulator
     {   
     public:
         void clear(); // clears the display
-        bool drawSprite(uint8_t* memory,uint16_t address,int x,int y,int n);
+        bool drawSprite(const std::vector<uint8_t>& memory,uint16_t address,int x,int y,int n);
         Display(int x,int y);
     private:
         std::vector<std::vector<char>> pixels; // two-dimensional array storing the value of

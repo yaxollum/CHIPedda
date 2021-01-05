@@ -3,18 +3,29 @@
  */
 
 #include "Emulator.h"
+#include "sprites/Sprites.h"
+#include "UnsupportedInstructionException.h"
+#include <stdio.h>
+#include <chrono>
 
 using namespace chipedda::emulator;
+using namespace chipedda::emulator::sprites;
 
-Emulator::Emulator(std::vector<uint8_t> program) : memory(0xfff),display(64,32)
+Emulator::Emulator(std::vector<uint8_t> program) : 
+    memory(0x1000),
+    display(64,32),
+    mtEngine(static_cast<uint32_t>(std::chrono::high_resolution_clock::now().time_since_epoch().count()))
 {
     std::copy(program.begin(),program.end(),memory.begin()+200); // copy program to memory
     registers.programCounter=0x200; // programs start at address 0x200
+
+    std::copy(SPRITES.begin(),SPRITES.end(),memory.begin()); // copy sprites to memory
 }
 
 void Emulator::nextInstruction() // execute next instruction
 {
     uint16_t &pc=registers.programCounter;
+    uint16_t &I=registers.registerI;
     uint8_t *V=registers.generalPurpose;
 
     uint8_t byte1=memory[pc]; // first byte of instruction
@@ -31,71 +42,208 @@ void Emulator::nextInstruction() // execute next instruction
     uint16_t last_three_nibbles=full & 0xfff; // last three nibbles of instruction
 
 
-    if(byte1==0x00 && byte2==0xe0) // 00E0 - CLS
+    switch(nibble1)
     {
-        display.clear();
-    }
-    else if(byte1==0x00 && byte2==0xee) // 00EE - RET
-    {
-        pc=call_stack.top();
-        call_stack.pop();
-    }
-    else if(nibble1==0x0) // 0nnn - SYS addr
-    {
-        // ignore this instruction
-    }
-    else if(nibble1==0x1) // 1nnn - JP addr
-    {
-        pc=last_three_nibbles;
-    }
-    else if(nibble1==0x2) // 2nnn - CALL addr
-    {
-        call_stack.push(pc);
-        pc=last_three_nibbles;
-    }
-    else if(nibble1==0x3) // 3xkk - SE Vx, byte
-    {
-        if(V[nibble2]==byte2)
+        case(0x0):
+            if(byte1==0x00 && byte2==0xe0) // 00E0 - CLS
+            {
+                display.clear();
+            }
+            else if(byte1==0x00 && byte2==0xee) // 00EE - RET
+            {
+                pc=call_stack.top();
+                call_stack.pop();
+            }
+            else // 0nnn - SYS addr
+            {
+                // ignore this instruction
+            }
+            pc+=2;
+            break;
+        case(0x1): // 1nnn - JP addr
+            pc=last_three_nibbles;
+            break;
+        case(0x2): // 2nnn - CALL addr
+            call_stack.push(pc);
+            pc=last_three_nibbles;
+            break;
+        case(0x3): // 3xkk - SE Vx, byte
+            if(V[nibble2]==byte2)
+            {
+                pc+=4; // skip next instruction if equal
+            }
+            else
+            {
+                pc+=2;
+            }
+            break;
+        case(0x4): // 4xkk - SNE Vx, byte
+            if(V[nibble2]!=byte2)
+            {
+                pc+=4; // skip next instruction if not equal
+            }
+            else
+            {
+                pc+=2;
+            }
+            break;
+        case(0x5): // 5xy0 - SE Vx, Vy
+            if(nibble4==0x0)
+            {
+                if(V[nibble2]==V[nibble3])
+                {
+                    pc+=4; // skip next instruction if equal
+                }
+                else
+                {
+                    pc+=2;
+                }
+                break;
+            }
+        case(0x6): // 6xkk - LD Vx, byte
+            V[nibble2]=byte2;
+            pc+=2;
+        case(0x7): // 7xkk - ADD Vx, byte
+            V[nibble2]+=byte2;
+            pc+=2;
+            break;
+        case(0x8):
+            switch(nibble4)
+            {
+                case(0x0): // 8xy0 - LD Vx, Vy
+                    V[nibble2]=V[nibble3];
+                    break;
+                case(0x1): // 8xy1 - OR Vx, Vy
+                    V[nibble2] |= V[nibble3];
+                    break;
+                case(0x2): // 8xy2 - AND Vx, Vy
+                    V[nibble2] &= V[nibble3];
+                    break;
+                case(0x3): // 8xy3 - XOR Vx, Vy
+                    V[nibble2] ^= V[nibble3];
+                    break;
+                case(0x4): // 8xy4 - ADD Vx, Vy
+                    V[0xf]=V[nibble2] > UINT8_MAX-V[nibble3] ? 1 : 0;
+                    V[nibble2]+=V[nibble3];
+                    break;
+                case(0x5): // 8xy5 - SUB Vx, Vy
+                    V[0xf]=V[nibble2]>V[nibble3] ? 1 : 0;
+                    V[nibble2]-=V[nibble3];
+                    break;
+                case(0x6): // 8xy6 - SHR Vx
+                    V[0xf]=V[nibble2] & 1;
+                    V[nibble2]>>=1;
+                    break;
+                case(0x7): // 8xy7 - SUBN Vx, Vy
+                    V[0xf]=V[nibble3]>V[nibble2] ? 1 : 0;
+                    V[nibble2]=V[nibble3]-V[nibble2];
+                    break;
+                case(0xe): // 8xyE - SHL Vx
+                    V[0xf]=V[nibble2] & (1<<7);
+                    V[nibble2]<<=1;
+                    break;
+                default:
+                    throw UnsupportedInstructionException(full);
+            }
+            pc+=2;
+            break;
+        case(0x9): // 9xy0 - SNE Vx, Vy
+            if(nibble4==0x0)
+            {
+                if(V[nibble2]!=V[nibble3])
+                {
+                    pc+=4; // skip next instruction if not equal
+                }
+                else
+                {
+                    pc+=2;
+                }
+                break;
+            }
+        case(0xa): // Annn - LD I, addr
+            I=last_three_nibbles;
+            pc+=2;
+            break;
+        case(0xb): // Bnnn - JP V0, addr 
+            pc=last_three_nibbles+V[0];
+            break;
+        case(0xc): // Cxkk - RND Vx, byte
         {
-            ++pc; // skip next instruction if equal
+            uint8_t randomByte=static_cast<uint8_t>(0xff&mtEngine());
+            V[nibble2]=randomByte&byte2;
+            pc+=2;
+            break;
         }
-    }
-    else if(nibble1==0x4) // 4xkk - SNE Vx, byte
-    {
-        if(V[nibble2]!=byte2)
-        {
-            ++pc; // skip next instruction if not equal
-        }
-    }
-    else if(nibble1==0x5 && nibble4==0x0) // 5xy0 - SE Vx, Vy
-    {
-        if(V[nibble2]==V[nibble3])
-        {
-            ++pc; // skip next instruction if equal
-        }
-    }
-    else if(nibble1==0x6) // 6xkk - LD Vx, byte
-    {
-        V[nibble2]=byte2;
-    }
-    else if(nibble1==0x7) // 7xkk - ADD Vx, byte
-    {
-        V[nibble2]+=byte2;
-    }
-    else if(nibble1==0x8 && nibble4==0x0) // 8xy0 - LD Vx, Vy
-    {
-        V[nibble2]=V[nibble3];
-    }
-    else if(nibble1==0x8 && nibble4==0x1) // 8xy1 - OR Vx, Vy
-    {
-        V[nibble2] |= V[nibble3];
-    }
-    else if(nibble1==0x8 && nibble4==0x2) // 8xy2 - AND Vx, Vy
-    {
-        V[nibble2] &= V[nibble3];
-    }
-    else if(nibble1==0x8 && nibble4==0x3) // 8xy3 - XOR Vx, Vy
-    {
-        V[nibble2] ^= V[nibble3];
+        case(0xd): // Dxyn - DRW Vx, Vy, nibble
+            V[0xf]=(display.drawSprite(memory,I,V[nibble2],V[nibble3],nibble4))? 1 : 0;
+            pc+=2;
+            break;
+        case(0xe):
+            switch(byte2)
+            {
+                case(0x9e): // Ex9E - SKP Vx
+                    if(keyboard.keyPressed(V[nibble2]))
+                    {
+                        pc+=4;
+                    }
+                    else
+                    {
+                        pc+=2;
+                    }
+                    break;
+                case(0xa1): // ExA1 - SKNP Vx
+                    if(!keyboard.keyPressed(V[nibble2]))
+                    {
+                        pc+=4;
+                    }
+                    else
+                    {
+                        pc+=2;
+                    }
+                    break;
+                default:
+                    throw UnsupportedInstructionException(full);
+            }
+            break;
+        case(0xf):
+            switch(byte2)
+            {
+                case(0x07): // Fx07 - LD Vx, DT
+                    V[nibble2]=delayTimer.getValue();
+                    break;
+                case(0x0A): // Fx0A - LD Vx, K
+                    V[nibble2]=keyboard.waitForKeyPress();
+                    break;
+                case(0x15): // Fx15 - LD DT, Vx
+                    delayTimer.setValue(V[nibble2]);
+                    break;
+                case(0x18): // Fx18 - LD ST, Vx
+                    soundTimer.setValue(V[nibble2]);
+                    break;
+                case(0x1E): // Fx1E - ADD I, Vx
+                    I+=V[nibble2];
+                    break;
+                case(0x29): // Fx29 - LD F, Vx
+                    I=getSpriteLocation(V[nibble2]);
+                    break;
+                case(0x33): // Fx33 - LD B, Vx
+                    memory[I]=V[nibble2]/uint8_t(100);
+                    memory[I+1]=V[nibble2]/uint8_t(10)%uint8_t(10);
+                    memory[I+2]=V[nibble2]%uint8_t(10);
+                    break;
+                case(0x55): // Fx55 - LD [I], Vx
+                    std::copy(V,V+0x10,memory.begin()+I);
+                    break;
+                case(0x65): // Fx65 - LD Vx, [I]
+                    std::copy(memory.begin()+I,memory.begin()+I+0x10,V);
+                    break;
+                default:
+                    throw UnsupportedInstructionException(full);
+            }
+            pc+=2;
+        default:
+            throw UnsupportedInstructionException(full);
+            pc+=2;
     }
 }
+

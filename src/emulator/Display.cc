@@ -12,7 +12,7 @@ void Display::clear() // clears the display
         }
     }
 }
-bool Display::drawSprite(uint8_t* memory,uint16_t address,int x,int y,int n)
+bool Display::drawSprite(const std::vector<uint8_t>& memory,uint16_t address,int x,int y,int n)
 {
     bool collision=false;
     for(int i=0;i<n;++i)

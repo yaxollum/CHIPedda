@@ -7,6 +7,7 @@ namespace chipedda::emulator
     {
     public:
         void setValue(uint8_t ticks);
+        uint8_t getValue();
     private:
         int64_t lastSetTime; // time when the timer was last set
     };
