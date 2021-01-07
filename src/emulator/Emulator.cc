@@ -99,8 +99,12 @@ void Emulator::nextInstruction() // execute next instruction
                 {
                     pc+=2;
                 }
-                break;
             }
+            else
+            {
+                throw UnsupportedInstructionException(full);
+            }
+            break;
         case(0x6): // 6xkk - LD Vx, byte
             V[nibble2]=byte2;
             pc+=2;
@@ -160,8 +164,12 @@ void Emulator::nextInstruction() // execute next instruction
                 {
                     pc+=2;
                 }
-                break;
             }
+            else
+            {
+                throw UnsupportedInstructionException(full);
+            }
+            break;
         case(0xa): // Annn - LD I, addr
             I=addr;
             pc+=2;
@@ -243,9 +251,9 @@ void Emulator::nextInstruction() // execute next instruction
                     throw UnsupportedInstructionException(full);
             }
             pc+=2;
+            break;
         default:
             throw UnsupportedInstructionException(full);
-            pc+=2;
     }
 }
 

@@ -98,8 +98,12 @@ std::string Disassembler::disassembleInstruction(uint8_t byte1,uint8_t byte2) //
             if(nibble4==0x0)
             {
                 assemblyStream<<"SE "<<nibble2_reg<<", "<<nibble3_reg;
-                break;
             }
+            else
+            {
+                throw UnsupportedInstructionException(full);
+            }
+            break;
         case(0x6): // 6xkk - LD Vx, byte
             assemblyStream<<"LD "<<nibble2_reg<<", "<<byte2_str;
             break;
@@ -144,8 +148,12 @@ std::string Disassembler::disassembleInstruction(uint8_t byte1,uint8_t byte2) //
             if(nibble4==0x0)
             {
                 assemblyStream<<"SNE "<<nibble2_reg<<", "<<nibble3_reg;
-                break;
             }
+            else
+            {
+                throw UnsupportedInstructionException(full);
+            }
+            break;
         case(0xa): // Annn - LD I, addr
             assemblyStream<<"LD I, "<<addr_str;
             break;

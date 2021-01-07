@@ -1,5 +1,6 @@
 #include "UnsupportedInstructionException.h"
 #include <sstream>
+#include <iomanip>
 
 using namespace chipedda::instruction;
 
@@ -11,6 +12,6 @@ const char * UnsupportedInstructionException::what() const noexcept
 UnsupportedInstructionException::UnsupportedInstructionException(uint16_t instr) : instruction(instr)
 {
     std::stringstream ss;
-    ss<<"Instruction 0x"<<std::hex<<instruction<<" not supported!";
+    ss<<"Instruction 0x"<<std::hex<<std::setfill('0')<<std::setw(4)<<instruction<<" not supported!";
     message=ss.str();
 }
