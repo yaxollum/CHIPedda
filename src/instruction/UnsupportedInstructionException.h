@@ -2,7 +2,7 @@
 #include <stdint.h>
 #include <string>
 
-namespace chipedda::emulator
+namespace chipedda::instruction
 {
     class UnsupportedInstructionException : public std::exception
     {

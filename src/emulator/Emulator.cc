@@ -4,14 +4,15 @@
 
 #include "Emulator.h"
 #include "sprites/Sprites.h"
-#include "UnsupportedInstructionException.h"
+#include "instruction/UnsupportedInstructionException.h"
 #include <stdio.h>
 #include <chrono>
 
+using namespace chipedda::instruction;
 using namespace chipedda::emulator;
 using namespace chipedda::emulator::sprites;
 
-Emulator::Emulator(std::vector<uint8_t> program) : 
+Emulator::Emulator(const std::vector<uint8_t>& program) : 
     memory(0x1000),
     display(64,32),
     mtEngine(static_cast<uint32_t>(std::chrono::high_resolution_clock::now().time_since_epoch().count()))
@@ -34,12 +35,12 @@ void Emulator::nextInstruction() // execute next instruction
     uint16_t full=(byte1<<8)+byte2; // full instruction
 
     // four nibbles of instruction
-    int nibble1=byte1 & 0xf0;
+    int nibble1=byte1 >> 4;
     int nibble2=byte1 & 0x0f;
-    int nibble3=byte2 & 0xf0;
+    int nibble3=byte2 >> 4;
     int nibble4=byte2 & 0x0f;
 
-    uint16_t last_three_nibbles=full & 0xfff; // last three nibbles of instruction
+    uint16_t addr=full & 0xfff; // last three nibbles of instruction
 
 
     switch(nibble1)
@@ -61,11 +62,11 @@ void Emulator::nextInstruction() // execute next instruction
             pc+=2;
             break;
         case(0x1): // 1nnn - JP addr
-            pc=last_three_nibbles;
+            pc=addr;
             break;
         case(0x2): // 2nnn - CALL addr
             call_stack.push(pc);
-            pc=last_three_nibbles;
+            pc=addr;
             break;
         case(0x3): // 3xkk - SE Vx, byte
             if(V[nibble2]==byte2)
@@ -103,6 +104,7 @@ void Emulator::nextInstruction() // execute next instruction
         case(0x6): // 6xkk - LD Vx, byte
             V[nibble2]=byte2;
             pc+=2;
+            break;
         case(0x7): // 7xkk - ADD Vx, byte
             V[nibble2]+=byte2;
             pc+=2;
@@ -161,11 +163,11 @@ void Emulator::nextInstruction() // execute next instruction
                 break;
             }
         case(0xa): // Annn - LD I, addr
-            I=last_three_nibbles;
+            I=addr;
             pc+=2;
             break;
         case(0xb): // Bnnn - JP V0, addr 
-            pc=last_three_nibbles+V[0];
+            pc=addr+V[0];
             break;
         case(0xc): // Cxkk - RND Vx, byte
         {

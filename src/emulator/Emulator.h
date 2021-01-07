@@ -22,6 +22,6 @@ namespace chipedda::emulator
 
         void nextInstruction();
     public:
-        Emulator(std::vector<uint8_t> program);
+        Emulator(const std::vector<uint8_t>& program);
     };
 }
