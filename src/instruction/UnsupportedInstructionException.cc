@@ -9,9 +9,9 @@ const char * UnsupportedInstructionException::what() const noexcept
     return message.c_str();
 }
 
-UnsupportedInstructionException::UnsupportedInstructionException(uint16_t instr) : instruction(instr)
+UnsupportedInstructionException::UnsupportedInstructionException(uint16_t instr) 
 {
     std::stringstream ss;
-    ss<<"Instruction 0x"<<std::hex<<std::setfill('0')<<std::setw(4)<<instruction<<" not supported!";
+    ss<<"Instruction 0x"<<std::hex<<std::setfill('0')<<std::setw(4)<<instr<<" not supported!";
     message=ss.str();
 }

@@ -9,7 +9,6 @@ namespace chipedda::instruction
     public:
         UnsupportedInstructionException(uint16_t instr);
     private:
-        uint16_t instruction;
         std::string message;
         const char *  what() const noexcept override;
     };
