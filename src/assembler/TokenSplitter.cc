@@ -1,19 +1,24 @@
 #include "TokenSplitter.h"
 #include "AssemblerException.h"
-#include <sstream>
+#include "General.h"
+#include <regex>
 
 using namespace chipedda::assembler;
 
 TokenSplitter::TokenSplitter(const std::string& ln) : line(ln)
 {
-    std::istringstream lineStream(line);
-    std::string instructionName;
-    lineStream >> instructionName;
-
-    instruction=getInstructionFromName(instructionName);
-    if(instruction!=Symbol::NOT_AN_INSTRUCTION)
+    std::vector<std::string> split=splitLine(line);
+    if(split.empty())
     {
-        tokens=splitTokens(lineStream);
+        instruction=Symbol::NOT_AN_INSTRUCTION;
+    }
+    else
+    {
+        instruction=getInstructionFromName(split[0]);
+        if(instruction!=Symbol::NOT_AN_INSTRUCTION)
+        {
+            tokens.assign(split.begin()+1,split.end());
+        }
     }
 }
 
@@ -26,30 +31,44 @@ Symbol TokenSplitter::getInstructionFromName(const std::string& instructionName)
     }
     else
     {
-        auto it=SYMBOL_MAP.find(instructionName);
+        std::string instructionUpper=strToUpperCase(instructionName);
+        auto it=SYMBOL_MAP.find(instructionUpper);
         if(it!=SYMBOL_MAP.end())
         {
             return it->second;
         }
         else
         {
-            throw AssemblerException(instructionName);
+            throw AssemblerException(instructionUpper);
         }
     }
 }
 
-std::vector<Token> TokenSplitter::splitTokens(std::istream& istr)
+std::vector<std::string> TokenSplitter::splitLine(const std::string& line)
 {
-    std::vector<Token> split;
-    std::string next;
-    while(std::getline(istr,next,','))
-    {
-        split.push_back(Token(next));
-    }
+    std::regex delim("[\\s,]+");
+    auto semicolon_it=std::find(line.begin(),line.end(),';');
+    std::sregex_token_iterator token_it(line.begin(),semicolon_it,delim,-1);
+    std::vector<std::string> split(token_it,std::sregex_token_iterator());
     return split;
 }
 
-bool TokenSplitter::isInstruction()
+bool TokenSplitter::isInstruction() const
 {
     return instruction!=Symbol::NOT_AN_INSTRUCTION;
+}
+
+Symbol TokenSplitter::getInstruction() const
+{
+    return instruction;
+}
+
+const std::vector<Token>& TokenSplitter::getTokens() const
+{
+    return tokens;
+}
+
+const std::string& TokenSplitter::getLine() const 
+{
+    return line;
 }
