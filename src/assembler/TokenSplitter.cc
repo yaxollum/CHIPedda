@@ -49,7 +49,12 @@ std::vector<std::string> TokenSplitter::splitLine(const std::string& line)
     std::regex delim("[\\s,]+");
     auto semicolon_it=std::find(line.begin(),line.end(),';');
     std::sregex_token_iterator token_it(line.begin(),semicolon_it,delim,-1);
-    std::vector<std::string> split(token_it,std::sregex_token_iterator());
+    std::vector<std::string> split;
+    std::copy_if(token_it,std::sregex_token_iterator(),back_inserter(split),
+            [](std::string s) -> bool
+            {
+                return !s.empty(); // only copy non-empty strings
+            });
     return split;
 }
 

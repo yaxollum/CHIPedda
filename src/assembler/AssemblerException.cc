@@ -8,9 +8,9 @@ const char * AssemblerException::what() const noexcept
     return message.c_str();
 }
 
-AssemblerException::AssemblerException(const std::string& line) 
+AssemblerException::AssemblerException(const std::string& expression) 
 {
     std::stringstream ss;
-    ss<<"Unable to assemble line \""<<line<<"\"";
+    ss<<"Unable to assemble expression \""<<expression<<"\"";
     message=ss.str();
 }
