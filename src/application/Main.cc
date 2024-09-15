@@ -64,22 +64,4 @@ run <input file>                        Runs a CHIP-8 binary using the emulator.
     }
   }
   std::cout << USAGE << "\n";
-  /*
-  std::ifstream programFile("program",std::ios::binary);
-
-  std::vector<uint8_t>
-  program((std::istreambuf_iterator<char>(programFile)),std::istreambuf_iterator<char>());
-
-  Disassembler disassembler(program);
-  std::cout<<disassembler.disassemble();
-  *//*
-  std::ifstream asmFile("asm");
-
-  std::string asmCode((std::istreambuf_iterator<char>(asmFile)),
-                      std::istreambuf_iterator<char>());
-
-  Assembler assembler(asmCode);
-  std::vector<uint8_t> program = assembler.assemble();
-  std::copy(program.begin(), program.end(),
-            std::ostreambuf_iterator<char>(std::cout));*/
 }
